@@ -1,82 +1,74 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Leaderboard for Game 1</title>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    .controls { margin-bottom: 1rem; }
-    .container {
-      display: flex; flex-wrap: wrap;
-      gap: 10px; justify-content: flex-start;
-    }
-    .user-block {
-      width: calc(10% - 10px);
-      padding: 10px; border: 1px solid #ddd;
-      border-radius: 5px; text-align: center;
-      background-color: #f9f9f9;
-    }
-    .user-block.red {
-      background-color: #ffcccc;
-    }
-    .user-block .name { font-weight: bold; margin-bottom: 5px; }
-    .user-block .score,
-    .user-block .rank,
-    .user-block .remaining {
-      font-size: 0.9rem;
-    }
-  </style>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h1>六六大順排行榜</h1>
 
+  <div class="controls" style="margin-bottom:1rem;">
+    <button id="btn-refresh">手動刷新</button>
+    <label style="margin-left: 1rem;">
+      <input type="checkbox" id="toggle-auto-refresh" />
+      啟用自動更新 (5 秒)
+    </label>
+  </div>
+
+  <div class="container" id="leaderboard" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+    defer
+  ></script>
   <script type="module">
     import { ref, get, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
     import { rtdb } from "./js/firebase.js";
 
-    let autoRefreshId = null; // 記錄自動更新的 Interval ID
+    let autoRefreshId = null;
 
     async function renderLeaderboard() {
       try {
-        // 1) 抓取所有使用者資料
         const usersRef = ref(rtdb, "users");
         const snapshot = await get(usersRef);
         if (!snapshot.exists()) return;
 
-        // 取得快照 -> 放進本地物件
         const usersData = snapshot.val();
 
-        // 2) 依 highestScore 做排名 (scoreArr)
+        // 依 highestScore 排序
         const scoreArr = [];
         for (const userId in usersData) {
-          const ui = usersData[userId];
-          const sc = ui?.game1?.highestScore || 0;
+          const sc = usersData[userId]?.game1?.highestScore || 0;
           scoreArr.push({ userId, score: sc });
         }
         scoreArr.sort((a, b) => b.score - a.score);
 
-        // 3) 批次更新 rank + 也改本地 usersData
+        // 批次更新 rank
         const updates = {};
         for (let i = 0; i < scoreArr.length; i++) {
           const rank = i + 1;
           const uId  = scoreArr[i].userId;
-          // 寫到 DB
           updates[`users/${uId}/game1/rank`] = rank;
-          // 同步更新「本地的 usersData」，等下顯示就能馬上看到
-          if (!usersData[uId].game1) {
+          if(!usersData[uId].game1) {
             usersData[uId].game1 = {};
           }
           usersData[uId].game1.rank = rank;
         }
-        // 4) 寫回資料庫
         await update(ref(rtdb), updates);
 
-        // 5) 依 orderArr 來決定顯示順序
+        // 依 order 決定顯示順序 (或你想用 rank 排也可以)
         const orderArr = [];
-        for (const userId in usersData) {
-          const ui = usersData[userId];
-          const orderVal = ui?.order ?? 999999;
+        for(const userId in usersData){
+          const orderVal = usersData[userId]?.order ?? 999999;
           orderArr.push({ userId, orderVal });
         }
         orderArr.sort((a, b) => a.orderVal - b.orderVal);
 
-        // 6) 渲染畫面: 順序根據 orderArr，但 rank, score 從 usersData 取
         const container = document.getElementById("leaderboard");
         container.innerHTML = "";
 
@@ -89,20 +81,25 @@
           const rank         = ui?.game1?.rank || "-";
           const remaining    = 3 - played;
 
-          // 建立區塊
           const block = document.createElement("div");
           block.classList.add("user-block");
+          block.style.width = "calc(10% - 10px)";
+          block.style.padding = "10px";
+          block.style.border = "1px solid #ddd";
+          block.style.borderRadius = "5px";
+          block.style.textAlign = "center";
+          block.style.backgroundColor = "#f9f9f9";
 
-          // 如果 rank 為數字且 <3 => 紅色
-          if (typeof rank === "number" && rank < 3) {
-            block.classList.add("red");
+          // 如果 rank <3 => 顯示紅色
+          if(typeof rank === "number" && rank < 3) {
+            block.style.backgroundColor = "#ffcccc";
           }
 
           block.innerHTML = `
-            <div class="name">${name}</div>
-            <div class="score">最高分數：${highestScore}</div>
-            <div class="rank">排名：${rank}</div>
-            <div class="remaining">剩餘次數：${remaining}</div>
+            <div class="name" style="font-weight:bold; margin-bottom:5px;">${name}</div>
+            <div class="score" style="font-size:0.9rem;">最高分數：${highestScore}</div>
+            <div class="rank" style="font-size:0.9rem;">排名：${rank}</div>
+            <div class="remaining" style="font-size:0.9rem;">剩餘次數：${remaining}</div>
           `;
           container.appendChild(block);
         }
@@ -111,7 +108,6 @@
       }
     }
 
-    // 自動更新
     function toggleAutoRefresh(e) {
       const checked = e.target.checked;
       if (checked) {
@@ -123,28 +119,10 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      renderLeaderboard(); // 首次執行
-
-      // 手動刷新
+      renderLeaderboard();
       document.getElementById("btn-refresh").addEventListener("click", renderLeaderboard);
-
-      // 開關自動更新
       document.getElementById("toggle-auto-refresh").addEventListener("change", toggleAutoRefresh);
     });
   </script>
-</head>
-<body>
-  <h1>六六大順排行榜</h1>
-
-  <div class="controls">
-    <button id="btn-refresh">手動刷新</button>
-
-    <label style="margin-left: 1rem;">
-      <input type="checkbox" id="toggle-auto-refresh" />
-      啟用自動更新 (5 秒)
-    </label>
-  </div>
-
-  <div class="container" id="leaderboard"></div>
 </body>
 </html>

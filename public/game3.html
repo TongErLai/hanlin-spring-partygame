@@ -1,75 +1,20 @@
+<!-- game3.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>第三遊戲 - 投注選手</title>
+  <!-- Bootstrap -->
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
     rel="stylesheet"
   />
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
-    defer
-  ></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f8f9fa;
-    }
-    .player-card {
-      margin: 10px 0;
-      padding: 15px;
-      border: 1px solid #007bff;
-      border-radius: 8px;
-      background-color: #ffffff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .player-card:hover {
-      background-color: #e9ecef;
-      cursor: pointer;
-    }
-    .selected {
-      background-color: #007bff !important;
-      color: white;
-    }
-    .locked {
-      pointer-events: none;
-      opacity: 0.6;
-    }
-    .status {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-    .alert {
-      margin-top: 15px;
-    }
-    /* 加載中畫面樣式 */
-    #loading-screen {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      font-size: 1.5rem;
-      background-color: #f8f9fa;
-    }
-    #main-content {
-      display: none;
-    }
-    /* 用於嵌入 "prepare" 或 "done" 狀態時顯示的區塊 */
-    #embed-prepare, #embed-done {
-      display: none;
-    }
-    iframe {
-      width: 100%;
-      height: calc(100vh - 100px);
-      border: none;
-    }
-  </style>
+  <!-- 引用你的全域樣式 -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <!-- 導覽列 -->
+  <!-- 導覽列 -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">春酒遊戲</a>
@@ -83,47 +28,75 @@
           <li class="nav-item"><a class="nav-link" href="index.html">首頁</a></li>
           <li class="nav-item"><a class="nav-link" href="game1.html">六六大順</a></li>
           <li class="nav-item"><a class="nav-link" href="game2.html">新春貪食蛇</a></li>
-          <li class="nav-item"><a class="nav-link" href="game3.html">投你所號</a></li>
+          <li class="nav-item"><a class="nav-link active" href="game3.html">投你所號</a></li>
           <li class="nav-item"><a class="nav-link" href="prizes.html">獎品兌換</a></li>
         </ul>
       </div>
     </div>
   </nav>
+
   <!-- 加載中狀態 -->
   <div id="loading-screen">正在加載，請稍候...</div>
 
-  <!-- 這裡是嵌入 "prepare" 狀態 頁面的容器 -->
-  <div id="embed-prepare">
+  <!-- "prepare" 狀態容器：顯示 game3-prepare.html -->
+  <div id="embed-prepare" style="display:none;">
     <iframe src=""></iframe>
   </div>
-  <!-- 這裡是嵌入 "done" 狀態 頁面的容器 -->
-  <div id="embed-done">
+  <!-- "done" 狀態容器：顯示 game3-done.html -->
+  <div id="embed-done" style="display:none;">
     <iframe src=""></iframe>
   </div>
-
-
 
   <!-- 主內容 (ready 狀態時顯示) -->
-  <div id="main-content">
+  <div id="main-content" style="display:none;">
     <div class="container mt-5">
       <h1 class="text-center">第三遊戲 - 投注選手</h1>
+      <!-- 狀態文字 -->
       <div id="game-status" class="text-center status"></div>
+
+      <!-- 用於列出所有可供投注的玩家 -->
       <div id="player-list" class="mt-4"></div>
+
+      <!-- 投注按鈕區塊 -->
       <div id="betting-controls" class="text-center mt-3" style="display: none;">
         <button class="btn btn-primary" id="submit-bet" disabled>投注</button>
       </div>
+
+      <!-- 提示訊息容器 -->
       <div id="alert-container" class="mt-3"></div>
     </div>
   </div>
 
+  <!-- Bootstrap JS -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+    defer
+  ></script>
+
+  <!-- Firebase & JS -->
+  <script type="module" src="js/firebase.js"></script>
+  <!-- 你若有 common.js，這裡也可引入：-->
+  <script type="module" src="js/common.js"></script>
+
+  <!-- 該頁的主要邏輯 -->
   <script type="module">
     import { auth, rtdb } from "./js/firebase.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
     import { ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
-    const loadingScreen= document.getElementById("loading-screen");
-    const mainContent  = document.getElementById("main-content");
-    const embedPrepare = document.getElementById("embed-prepare");
-    const embedDone    = document.getElementById("embed-done");
+    // DOM
+    const loadingScreen    = document.getElementById("loading-screen");
+    const mainContent      = document.getElementById("main-content");
+    const embedPrepare     = document.getElementById("embed-prepare");
+    const embedDone        = document.getElementById("embed-done");
+    const gameStatus       = document.getElementById("game-status");
+    const playerList       = document.getElementById("player-list");
+    const bettingControls  = document.getElementById("betting-controls");
+    const submitBet        = document.getElementById("submit-bet");
+    const alertContainer   = document.getElementById("alert-container");
+
+    let selectedPlayers= [];  // 用來記錄使用者選到哪些玩家
+    let currentUserId= null;
 
     // 監聽 game3 狀態 => "prepare"/"ready"/"done"
     const game3StateRef= ref(rtdb,"available/game3");
@@ -153,90 +126,76 @@
       mainContent.style.display="none";
     }
 
-    // -------------------------
-    // 以下是原本的投注邏輯 (READY 狀態)
-    // -------------------------
-    const gameStatus       = document.getElementById("game-status");
-    const playerList       = document.getElementById("player-list");
-    const bettingControls  = document.getElementById("betting-controls");
-    const submitBet        = document.getElementById("submit-bet");
-    const alertContainer   = document.getElementById("alert-container");
-
-    let selectedPlayers= [];
-    let currentUserId= null;
-
-    document.addEventListener("DOMContentLoaded", ()=>{
-      // 預設先隱藏 loading
-      loadingScreen.style.display="none";
-      // 是否顯示 mainContent 取決於 available/game3 => "ready"
-    });
-
-    auth.onAuthStateChanged(async (user)=>{
+    // 監聽登入
+    onAuthStateChanged(auth, async (user)=>{
       if(!user){
-        alert("請登入以使用此功能！");
+        // 未登入
+        gameStatus.textContent= "請先登入才可參與投注！";
+        hideLoading();
         return;
       }
       currentUserId= user.uid;
 
-      // 檢查用戶是否已經投注
+      // 檢查用戶是否「已經投注」過
       const userBetRef= ref(rtdb, `users/${currentUserId}/game3/bet`);
       const userBetSnap= await get(userBetRef);
 
       if(userBetSnap.exists()){
         // 用戶已經投注
-        const prevSel= userBetSnap.val().selected||[];
+        const prevSel= userBetSnap.val().selected || [];
         gameStatus.textContent= "您已經投注完成！";
         bettingControls.style.display= "none";
 
-        // 顯示之前選的選手
-        const playersRef= ref(rtdb,"users");
-        const playersSnap= await get(playersRef);
-        if(playersSnap.exists()){
-          const users= playersSnap.val();
-          for(const uid in users){
-            if(users[uid].game3 && users[uid].game3.role==="player"){
-              const playerCard= displayPlayer(uid, users[uid].name || `玩家 ${uid}`);
+        // 仍可顯示「之前選到哪些選手」
+        const usersSnap= await get(ref(rtdb,"users"));
+        if(usersSnap.exists()){
+          const allUsers= usersSnap.val();
+          for(const uid in allUsers){
+            // 只列出 role==="player" 的當參賽者
+            if(allUsers[uid].game3 && allUsers[uid].game3.role==="player"){
+              const name= allUsers[uid].name || `玩家 ${uid}`;
+              const card= createPlayerCard(uid, name);
+              // 如果 uid 在 prevSel 內，就高亮顯示
               if(prevSel.includes(uid)){
-                playerCard.classList.add("selected","locked");
+                card.classList.add("selected","locked");
               }
             }
           }
         }
-        loadingScreen.style.display="none";
-        mainContent.style.display="block";
+        hideLoading();
         return;
       }
 
-      // 如果用戶是入圍 player
-      const userRoleRef= ref(rtdb, `users/${currentUserId}/game3/role`);
-      const userRoleSnap= await get(userRoleRef);
+      // 如果用戶是「已入圍 player」
+      const userRoleSnap= await get(ref(rtdb, `users/${currentUserId}/game3/role`));
       if(userRoleSnap.exists() && userRoleSnap.val()==="player"){
-        // 入圍玩家
-        gameStatus.textContent= "恭喜你，你是入圍玩家！";
+        // 入圍玩家無需投注
+        gameStatus.textContent= "恭喜你，你是入圍玩家！不需投注。";
+        bettingControls.style.display= "none";
+        hideLoading();
       } else {
-        // 旁觀者 => 可下注
+        // 否則 => 旁觀者 => 可下注
         gameStatus.textContent= "請選擇三位選手進行投注！";
         bettingControls.style.display= "block";
 
-        // 取所有入圍玩家
-        const playersRef= ref(rtdb,"users");
-        const playersSnap= await get(playersRef);
-        if(playersSnap.exists()){
-          const users= playersSnap.val();
-          for(const uid in users){
-            if(users[uid].game3 && users[uid].game3.role==="player"){
-              displayPlayer(uid, users[uid].name || `玩家 ${uid}`);
+        // 讀取所有入圍玩家
+        const usersSnap= await get(ref(rtdb,"users"));
+        if(usersSnap.exists()){
+          const allUsers= usersSnap.val();
+          for(const uid in allUsers){
+            if(allUsers[uid].game3 && allUsers[uid].game3.role==="player"){
+              const name= allUsers[uid].name || `玩家 ${uid}`;
+              createPlayerCard(uid, name);
             }
           }
         }
+        hideLoading();
       }
-      loadingScreen.style.display="none";
-      mainContent.style.display="block";
     });
 
-    function displayPlayer(uid, name){
+    function createPlayerCard(uid, name){
       const card= document.createElement("div");
-      card.className="player-card";
+      card.className="player-card";  // 若 style.css 有對 .player-card 做美化
       card.textContent= name;
       card.dataset.userId= uid;
       card.addEventListener("click", ()=> togglePlayerSelection(card));
@@ -247,12 +206,15 @@
     function togglePlayerSelection(card){
       const uid= card.dataset.userId;
       if(selectedPlayers.includes(uid)){
-        // 取消
+        // 取消選取
         selectedPlayers= selectedPlayers.filter(x=> x!==uid);
         card.classList.remove("selected");
-      } else if(selectedPlayers.length<3){
-        selectedPlayers.push(uid);
-        card.classList.add("selected");
+      } else {
+        // 最多選 3 位選手
+        if(selectedPlayers.length<3){
+          selectedPlayers.push(uid);
+          card.classList.add("selected");
+        }
       }
       submitBet.disabled= (selectedPlayers.length!==3);
     }
@@ -260,27 +222,34 @@
     submitBet.addEventListener("click", async ()=>{
       try{
         submitBet.disabled= true;
+        // 鎖定選手列表
         document.querySelectorAll(".player-card").forEach(c=> c.classList.add("locked"));
 
-        // 寫入DB
-        const betRef= ref(rtdb,`users/${currentUserId}/game3/bet`);
-        await update(betRef,{ selected: selectedPlayers });
+        // 寫入 DB => `users/${currentUserId}/game3/bet`
+        await update(ref(rtdb,`users/${currentUserId}/game3/bet`), {
+          selected: selectedPlayers
+        });
 
         showAlert("投注成功！","success");
         gameStatus.textContent= "您已經投注完成！";
-        bettingControls.style.display="none";
+        bettingControls.style.display= "none";
       } catch(e){
         console.error("投注失敗：", e);
         showAlert("投注失敗，請稍後再試！","danger");
       }
     });
 
-    function showAlert(msg,type){
+    function showAlert(msg, type){
       alertContainer.innerHTML=`
         <div class="alert alert-${type}" role="alert">
           ${msg}
         </div>
       `;
+    }
+
+    function hideLoading(){
+      loadingScreen.style.display="none";
+      mainContent.style.display="block";
     }
   </script>
 </body>

@@ -8,56 +8,17 @@
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
     rel="stylesheet"
   />
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
-    defer
-  ></script>
-  <style>
-    body { font-family: Arial,sans-serif; background-color:#f8f9fa; }
-    .score-row {
-      display:flex; justify-content:center; gap:2rem;
-      font-size:1.2rem; font-weight:bold; margin-bottom:1rem;
-    }
-    .grid {
-      display:grid; grid-template-columns:repeat(12,1fr); gap:1px;
-      margin:20px auto; width:381px; background-color:#333; padding:5px;
-      border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.2);
-    }
-    .cell {
-      width:30px; height:30px; display:flex; justify-content:center; align-items:center;
-      font-size:12px; font-weight:bold; color:#fff; border-radius:4px; border:1px solid #444;
-      text-transform:uppercase;
-    }
-    .obstacle { background-color:#555; }
-    .team-A-head { background-color:#218838; color:yellow; }
-    .team-A-body { background-color:#28a745; color:#fff; }
-    .team-B-head { background-color:#8e44ad; color:yellow; }
-    .team-B-body { background-color:#9b59b6; color:#fff; }
-    .team-C-head { background-color:#c0392b; color:yellow; }
-    .team-C-body { background-color:#e74c3c; color:#fff; }
-    .team-D-head { background-color:#f39c12; color:yellow; }
-    .team-D-body { background-color:#f1c40f; color:#fff; }
-    .stunned   { filter:grayscale(100%); }
-    .coin      { background-color:#ffc107; color:#000; }
-    .diamond   { background-color:#007bff; color:#fff; }
-    .poison    { background-color:#dc3545; color:#fff; }
-    .next-item { background-color:#777;    color:#fff; }
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="container mt-4">
     <h1 class="text-center mb-4">Game2 - 管理者控制頁面</h1>
-
-    <!-- 隊伍得分 (橫排) -->
     <div class="score-row" id="score-board"></div>
-
-    <!-- 狀態顯示 -->
     <div class="status mb-3 text-center">
       <h4>當前階段：<span id="current-phase">Loading...</span></h4>
       <h4>回合時間：<span id="current-timer">Loading...</span></h4>
     </div>
 
-    <!-- 管理面板 -->
     <div class="d-flex flex-wrap justify-content-center mb-4" style="gap:0.5rem;">
       <button class="btn btn-sm btn-primary" id="btn-phase-vote">Vote</button>
       <button class="btn btn-sm btn-secondary" id="btn-phase-execute">Execute</button>
@@ -67,27 +28,27 @@
       <button class="btn btn-sm btn-danger"  id="reset-game">重置遊戲</button>
     </div>
 
-    <!-- 棋盤顯示 -->
     <div class="grid" id="game-board"></div>
 
-    <!-- 即時數據：投票數據 (顯示每回合統計) -->
     <div class="mt-4">
       <h4>投票數據 (每回合)</h4>
       <div id="votes-data"></div>
     </div>
 
-    <!-- 行動紀錄 -->
     <div class="mt-4">
       <h4>回合行動紀錄</h4>
       <div id="action-logs"></div>
     </div>
   </div>
 
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+    defer
+  ></script>
   <script type="module">
     import { rtdb } from "./js/firebase.js";
     import { ref, get, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
-    // DOM
     const phaseEl      = document.getElementById("current-phase");
     const timerEl      = document.getElementById("current-timer");
     const gameBoard    = document.getElementById("game-board");
@@ -102,20 +63,16 @@
     const assignRolesBtn= document.getElementById("assign-roles");
     const resetGameBtn = document.getElementById("reset-game");
 
-    // DB refs
     const turnRef       = ref(rtdb,"game2/turn");
     const boardRef      = ref(rtdb,"game2/board");
     const snakesRef     = ref(rtdb,"game2/snakes");
-    const votesAllRef   = ref(rtdb,"game2/votes");  // 每回合統計結果
+    const votesAllRef   = ref(rtdb,"game2/votes");
     const turnHistoryRef= ref(rtdb,"game2/turnHistory");
     const usersRef      = ref(rtdb,"users");
 
     let localTimer = null;
     let isExecuting= false;
 
-    // ------------------------------
-    // 初始化監聽
-    // ------------------------------
     function initialize(){
       onValue(turnRef, snap => {
         const td= snap.val();
@@ -130,9 +87,8 @@
         if(td.phase==="vote" && td.startTime && td.duration>0){
           startLocalCountdown(td.startTime, td.duration);
         }
-        // 自動執行回合
         if(td.phase==="execute" && !isExecuting){
-          isExecuting= true;
+          isExecuting=true;
           executeTurn();
         }
       });
@@ -145,7 +101,6 @@
         if(snap.exists()) renderScoreBoard(snap.val());
       });
 
-      // 監聽 votes -> 顯示所有回合統計
       onValue(votesAllRef, snap=>{
         if(!snap.exists()){
           votesData.innerHTML="無投票資料";
@@ -153,12 +108,11 @@
         }
         const data= snap.val();
         const rounds= Object.keys(data).sort((a,b)=> Number(a)-Number(b));
-        votesData.innerHTML= rounds.map(r=>{
-          return `<pre>第${r}回合統計:\n${ JSON.stringify(data[r], null,2) }</pre>`;
-        }).join("");
+        votesData.innerHTML= rounds.map(r=>
+          `<pre>第${r}回合統計:\n${ JSON.stringify(data[r], null,2) }</pre>`
+        ).join("");
       });
 
-      // 行動紀錄
       onValue(turnHistoryRef, snap=>{
         const data= snap.val()||{};
         const sorted= Object.keys(data).sort((a,b)=>Number(a)-Number(b));
@@ -166,58 +120,8 @@
           `<div><strong>第${k}回合：</strong>${JSON.stringify(data[k])}</div>`
         ).join("");
       });
-
-      // 另外做「投票即時統計」，在管理頁就能看到中途投票數
-      // 只在 phase="vote" 時進行
-      onValue(usersRef, async snap=>{
-        const usersData= snap.val()||{};
-        // 讀取現在的 turn
-        const turnSnap= await get(turnRef);
-        if(!turnSnap.exists()) return;
-        const tData= turnSnap.val();
-        if(tData.phase!=="vote") return; // 不是投票階段 => 不做即時統計
-
-        const curRound= tData.currentTurn+1; // 投這回合
-        const directionCount= {
-          A:{up:0,down:0,left:0,right:0},
-          B:{up:0,down:0,left:0,right:0},
-          C:{up:0,down:0,left:0,right:0},
-          D:{up:0,down:0,left:0,right:0},
-        };
-        const itemTypeCount= { diamond:0, obstacle:0, poison:0 };
-
-        for(const [uid, uObj] of Object.entries(usersData)){
-          if(!uObj.game2) continue;
-          const role= uObj.game2.role;
-          const team= uObj.game2.team;
-          if(!uObj.game2.turn) continue;
-
-          const tv= uObj.game2.turn[curRound];
-          if(!tv) continue; // 無投票
-
-          if(role==="player" && team && directionCount[team]){
-            const d= tv.direction;
-            if(d && directionCount[team][d]>=0){
-              directionCount[team][d]++;
-            }
-          } else if(role==="viewer"){
-            const it= tv.itemType;
-            if(it && itemTypeCount[it]>=0){
-              itemTypeCount[it]++;
-            }
-          }
-        }
-        // 寫入 votes/{curRound}，讓管理頁即時看見
-        await set(ref(rtdb,`game2/votes/${curRound}`), {
-          directions: directionCount,
-          items: itemTypeCount
-        });
-      });
     }
 
-    // ------------------------------
-    // 本地倒數
-    // ------------------------------
     function startLocalCountdown(startTime, durationSec){
       const endTime= Number(startTime) + durationSec*1000;
       localTimer= setInterval(()=>{
@@ -226,21 +130,16 @@
           clearInterval(localTimer);
           localTimer=null;
           timerEl.textContent="0";
-          // 自動進入 execute
-          update(turnRef,{phase:"execute",startTime:Date.now(),duration:0});
+          update(turnRef,{phase:"execute", startTime:Date.now(), duration:0});
         } else {
           timerEl.textContent= String(remain);
         }
       }, 500);
     }
 
-    // ------------------------------
-    // 執行回合
-    // ------------------------------
     async function executeTurn(){
       try {
         await new Promise(r=> setTimeout(r,300));
-
         const [boardSnap, snakesSnap, turnSnap, usersSnap]= await Promise.all([
           get(boardRef), get(snakesRef), get(turnRef), get(usersRef)
         ]);
@@ -248,7 +147,6 @@
           console.log("資料缺失");
           return;
         }
-
         const board= boardSnap.val();
         const snakes= snakesSnap.val();
         const td= turnSnap.val();
@@ -257,7 +155,7 @@
         let oldTurn= td.currentTurn || 0;
         let newTurn= oldTurn+1;
 
-        // 聚合最終投票 (以防有人最後一秒投)
+        // 聚合最終投票
         const directionCount= {
           A:{up:0,down:0,left:0,right:0},
           B:{up:0,down:0,left:0,right:0},
@@ -265,6 +163,7 @@
           D:{up:0,down:0,left:0,right:0},
         };
         const itemTypeCount= { diamond:0, obstacle:0, poison:0 };
+
         for(const [uid, uObj] of Object.entries(usersData)){
           if(!uObj.game2) continue;
           const role= uObj.game2.role;
@@ -285,13 +184,12 @@
             }
           }
         }
-        // 寫入 votes/{newTurn} (最終結果)
         await set(ref(rtdb,`game2/votes/${newTurn}`), {
           directions: directionCount,
           items: itemTypeCount
         });
 
-        // 放置道具 (若上輪已標記 nextItemPos)
+        // 放置道具
         if(td.nextItemPos){
           placeNextItem(board.grid, td.nextItemPos, itemTypeCount);
           await update(turnRef,{ nextItemPos:null });
@@ -318,8 +216,8 @@
             return isValidMove(testHead, board.grid);
           });
           if(!valid.length){
-            snk.stunned= true;
-            actionLog[team]= "invalid => stunned";
+            snk.stunned=true;
+            actionLog[team]="invalid => stunned";
           } else {
             const chosen= valid.length>1
               ? valid[Math.floor(Math.random()*valid.length)]
@@ -329,17 +227,14 @@
           }
         }
 
-        // 偶數回合 => 生成金幣
         if(newTurn%2===0){
           generateCoin(board.grid);
         }
         validateBoard(board.grid);
 
-        // 寫回
         await update(ref(rtdb,"game2"), { board, snakes });
         await set(ref(rtdb,`game2/turnHistory/${newTurn}`), actionLog);
 
-        // 回合 >=37 => 結束
         if(newTurn>=37){
           const winner= checkWinner(snakes);
           if(winner){
@@ -348,8 +243,6 @@
             return;
           }
         }
-
-        // 預設 -> 回到 ready（讓管理者再按 Vote）
         await update(turnRef,{
           currentTurn: newTurn,
           phase:"ready",
@@ -362,58 +255,124 @@
       isExecuting=false;
     }
 
-    // ------------------------------
-    // 切到 vote 階段 → 隨機一格 next-item
-    // ------------------------------
-    async function switchToVotePhase(){
-      // 先取得 board
-      const bSnap= await get(boardRef);
-      if(!bSnap.exists())return;
-      const bd= bSnap.val();
-
-      // 隨機挑
-      const rp= pickRandomEmpty(bd.grid);
-      if(rp){
-        bd.grid[rp]={ type:"next-item" };
+    function placeNextItem(grid, pos, itemTypeCount){
+      let maxVal=-1;
+      for(const c of Object.values(itemTypeCount)){
+        if(c>maxVal) maxVal=c;
       }
-      await update(boardRef, bd);
+      const cands= Object.entries(itemTypeCount)
+        .filter(([_,cnt])=> cnt===maxVal)
+        .map(([tp,])=> tp);
+      if(!cands.length){
+        cands.push("diamond","obstacle","poison");
+      }
+      const chosen= cands[Math.floor(Math.random()*cands.length)];
+      grid[pos]={ type: chosen };
+    }
+    function calcNewHead(head,dir){
+      const [x,y]= head.split(",").map(Number);
+      if(dir==="up")   return `${x},${y-1}`;
+      if(dir==="down") return `${x},${y+1}`;
+      if(dir==="left") return `${x-1},${y}`;
+      if(dir==="right")return `${x+1},${y}`;
+      return head;
+    }
+    function isValidMove(pos,grid){
+      const c= grid[pos];
+      if(!c) return false;
+      if(["obstacle","snake"].includes(c.type)) return false;
+      return ["empty","coin","diamond","poison","next-item"].includes(c.type);
+    }
+    function moveSnake(snk,dir,grid){
+      const nh= calcNewHead(snk.head, dir);
+      snk.body.unshift(nh);
+      snk.head= nh;
 
-      await update(turnRef,{ nextItemPos: rp||null });
+      const cell= grid[nh];
+      if(cell.type==="coin"){
+        snk.score= (snk.score||0)+1;
+        snk.long++;
+      } else if(cell.type==="diamond"){
+        snk.score= (snk.score||0)+2;
+        snk.long++;
+      } else if(cell.type==="poison"){
+        snk.score= (snk.score||0)-1;
+      }
 
-      // 讀取當前 turn 以決定倒數
-      const tSnap= await get(turnRef);
-      const td= tSnap.val()||{};
-      const cur= td.currentTurn||0;
-      const vt= getVoteTimer(cur);
-
-      // 設置 phase=vote
-      await update(turnRef,{
-        phase:"vote",
-        startTime: Date.now(),
-        duration: vt
+      while(snk.body.length> snk.long){
+        const tail= snk.body.pop();
+        grid[tail]={ type:"empty" };
+      }
+      grid[nh]={ type:"snake", isHead:true, team:snk.team };
+      snk.body.slice(1).forEach(bp=>{
+        grid[bp]={ type:"snake", isHead:false, team:snk.team };
       });
     }
+    function generateCoin(grid){
+      const empties= Object.entries(grid).filter(([_,c])=> c.type==="empty");
+      if(!empties.length)return;
+      const [k]= empties[Math.floor(Math.random()*empties.length)];
+      grid[k]={ type:"coin" };
+    }
+    function validateBoard(grid){
+      for(const [k,v] of Object.entries(grid)){
+        if(!v||typeof v.type!=="string"){
+          grid[k]={ type:"empty" };
+        }
+      }
+    }
+    function checkWinner(snakes){
+      const arr= Object.entries(snakes).map(([team,s])=>({team,score:s.score||0}));
+      arr.sort((a,b)=> b.score - a.score);
+      if(arr.length>1 && arr[0].score===arr[1].score) return null;
+      return arr[0].team;
+    }
 
-    // ------------------------------
-    // Phase 按鈕事件
-    // ------------------------------
+    // 按鈕事件
     btnVote.addEventListener("click", switchToVotePhase);
-
     btnExecute.addEventListener("click", async()=>{
-      // 強制立即 execute
       await update(turnRef,{ phase:"execute", startTime:Date.now(), duration:0 });
     });
-
     btnEnd.addEventListener("click", async()=>{
       await update(turnRef,{ phase:"end", startTime:0, duration:0 });
     });
     btnReady.addEventListener("click", async()=>{
       await update(turnRef,{ phase:"ready", startTime:0, duration:0 });
     });
+    async function switchToVotePhase(){
+      const bSnap= await get(boardRef);
+      if(!bSnap.exists())return;
+      const bd= bSnap.val();
+      const rp= pickRandomEmpty(bd.grid);
+      if(rp) bd.grid[rp]={ type:"next-item" };
+      await update(boardRef, bd);
 
-    // ------------------------------
-    // 重置遊戲
-    // ------------------------------
+      await update(turnRef,{ nextItemPos: rp||null });
+      const tSnap= await get(turnRef);
+      const td= tSnap.val()||{};
+      const cur= td.currentTurn||0;
+      const vt= getVoteTimer(cur);
+
+      await update(turnRef,{
+        phase:"vote",
+        startTime: Date.now(),
+        duration: vt
+      });
+    }
+    function pickRandomEmpty(grid){
+      const empties= Object.entries(grid).filter(([_,c])=> c.type==="empty");
+      if(!empties.length)return null;
+      const [key]= empties[Math.floor(Math.random()*empties.length)];
+      return key;
+    }
+    function getVoteTimer(t){
+      if(t<3) return 15;
+      if(t<20) return 10;
+      return 6;
+    }
+
+    // 重置
+    resetGameBtn.addEventListener("click", resetGame);
     async function resetGame(){
       const size=12;
       const snakes= initSnakes();
@@ -423,7 +382,6 @@
       });
       validateBoard(grid);
 
-      // 清除玩家投票
       const usnap= await get(usersRef);
       if(usnap.exists()){
         const uData= usnap.val();
@@ -438,58 +396,15 @@
         }
       }
 
-      // 重置
       await set(ref(rtdb,"game2"), {
         board:{ size, grid },
         snakes,
         turn:{ phase:"ready", currentTurn:0, startTime:0, duration:0, nextItemPos:null },
         turnHistory:{}
       });
-      // 清空 vote 結果
       await remove(votesAllRef);
-
       alert("遊戲重置完畢");
     }
-    resetGameBtn.addEventListener("click", resetGame);
-
-    // ------------------------------
-    // 分配角色
-    // ------------------------------
-    async function assignRoles(){
-      const snap= await get(usersRef);
-      if(!snap.exists()){
-        alert("無法取得用戶資料");
-        return;
-      }
-      const users= snap.val();
-      // 這裡隨便示例：依 game1.rank 排序
-      const ranked= Object.entries(users)
-        .filter(([_,d])=> d.game1 && d.game1.rank)
-        .sort(([,a],[,b])=> a.game1.rank - b.game1.rank);
-      let playerCount=0;
-      const teams=["A","B","C","D"];
-      for(const [uid] of ranked){
-        if(playerCount<40){
-          const idx= Math.floor(playerCount/10);
-          await update(ref(rtdb, `users/${uid}/game2`), {
-            role:"player",
-            team: teams[idx]
-          });
-        } else {
-          await update(ref(rtdb, `users/${uid}/game2`), {
-            role:"viewer",
-            team:null
-          });
-        }
-        playerCount++;
-      }
-      alert("角色分配完成");
-    }
-    assignRolesBtn.addEventListener("click", assignRoles);
-
-    // ------------------------------
-    // 小工具
-    // ------------------------------
     function initSnakes(){
       return {
         A:{ team:"A", body:["3,3","3,2"], head:"3,3", long:2, stunned:false, score:0 },
@@ -505,14 +420,12 @@
           g[`${x},${y}`]={ type:"empty" };
         }
       }
-      // 外圍 obstacle
       for(let i=0;i<size;i++){
         g[`${i},0`]= { type:"obstacle" };
         g[`${i},${size-1}`]= { type:"obstacle" };
         g[`0,${i}`]= { type:"obstacle" };
         g[`${size-1},${i}`]= { type:"obstacle" };
       }
-      // 放蛇
       for(const[t,snk] of Object.entries(snakes)){
         snk.body.forEach((pos, idx)=>{
           g[pos]={ type:"snake", isHead:(idx===0), team:t };
@@ -520,7 +433,6 @@
       }
       return g;
     }
-
     function renderBoard(bd){
       gameBoard.innerHTML="";
       const { size, grid }= bd;
@@ -562,83 +474,36 @@
       if(arr.length>1 && arr[0].score===arr[1].score) return null;
       return arr[0].team;
     }
-    function calcNewHead(head,dir){
-      const [x,y]= head.split(",").map(Number);
-      if(dir==="up")   return `${x},${y-1}`;
-      if(dir==="down") return `${x},${y+1}`;
-      if(dir==="left") return `${x-1},${y}`;
-      if(dir==="right")return `${x+1},${y}`;
-      return head;
-    }
-    function isValidMove(pos,grid){
-      const c= grid[pos];
-      if(!c) return false;
-      if(["obstacle","snake"].includes(c.type))return false;
-      return ["empty","coin","diamond","poison","next-item"].includes(c.type);
-    }
-    function moveSnake(snk,dir,grid){
-      const nh= calcNewHead(snk.head, dir);
-      snk.body.unshift(nh);
-      snk.head= nh;
 
-      const cell= grid[nh];
-      if(cell.type==="coin"){
-        snk.score= (snk.score||0)+1;
-        snk.long++;
-      } else if(cell.type==="diamond"){
-        snk.score= (snk.score||0)+2;
-        snk.long++;
-      } else if(cell.type==="poison"){
-        snk.score= (snk.score||0)-1;
+    assignRolesBtn.addEventListener("click", assignRoles);
+    async function assignRoles(){
+      const snap= await get(usersRef);
+      if(!snap.exists()){
+        alert("無法取得用戶資料");
+        return;
       }
-      // 修剪尾
-      while(snk.body.length> snk.long){
-        const tail= snk.body.pop();
-        grid[tail]={ type:"empty" };
-      }
-      // 重置蛇身
-      grid[nh]={ type:"snake", isHead:true, team:snk.team };
-      snk.body.slice(1).forEach(bp=>{
-        grid[bp]={ type:"snake", isHead:false, team:snk.team };
-      });
-    }
-    function placeNextItem(grid, pos, itemTypeCount){
-      let maxVal=-1;
-      for(const c of Object.values(itemTypeCount)){
-        if(c>maxVal) maxVal=c;
-      }
-      const cands= Object.entries(itemTypeCount)
-        .filter(([_,cnt])=> cnt===maxVal)
-        .map(([tp,])=> tp);
-      if(!cands.length){
-        cands.push("diamond","obstacle","poison");
-      }
-      const chosen= cands[Math.floor(Math.random()*cands.length)];
-      grid[pos]={ type: chosen };
-    }
-    function generateCoin(grid){
-      const empties= Object.entries(grid).filter(([_,c])=> c.type==="empty");
-      if(!empties.length)return;
-      const [k]= empties[Math.floor(Math.random()*empties.length)];
-      grid[k]={ type:"coin" };
-    }
-    function pickRandomEmpty(grid){
-      const empties= Object.entries(grid).filter(([_,c])=> c.type==="empty");
-      if(!empties.length)return null;
-      const [key]= empties[Math.floor(Math.random()*empties.length)];
-      return key;
-    }
-    function validateBoard(grid){
-      for(const [k,v] of Object.entries(grid)){
-        if(!v||typeof v.type!=="string"){
-          grid[k]={ type:"empty" };
+      const users= snap.val();
+      const ranked= Object.entries(users)
+        .filter(([_,d])=> d.game1 && d.game1.rank)
+        .sort(([,a],[,b])=> a.game1.rank - b.game1.rank);
+      let playerCount=0;
+      const teams=["A","B","C","D"];
+      for(const [uid] of ranked){
+        if(playerCount<40){
+          const idx= Math.floor(playerCount/10);
+          await update(ref(rtdb, `users/${uid}/game2`), {
+            role:"player",
+            team: teams[idx]
+          });
+        } else {
+          await update(ref(rtdb, `users/${uid}/game2`), {
+            role:"viewer",
+            team:null
+          });
         }
+        playerCount++;
       }
-    }
-    function getVoteTimer(t){
-      if(t<3) return 15;
-      if(t<20) return 10;
-      return 6;
+      alert("角色分配完成");
     }
 
     initialize();

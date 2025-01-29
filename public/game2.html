@@ -9,108 +9,22 @@
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
     rel="stylesheet"
   />
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
-    defer
-  ></script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif; background-color: #f8f9fa;
-      margin:0; padding:0;
-    }
-    /* 加載中畫面 */
-    #loading-screen {
-      display: flex; justify-content: center; align-items: center;
-      height: 100vh; font-size: 1.5rem; background-color: #f8f9fa;
-    }
-
-    /* 隱藏容器（若不是 player/viewer） */
-    #main-container.hidden { display: none; }
-
-    /* 內嵌頁面容器 (prepare, done) */
-    #embed-prepare, #embed-done {
-      display: none;
-    }
-    iframe {
-      width: 100%; height: calc(100vh - 100px); border: none;
-    }
-
-    /* 導覽列在上方 */
-    nav.navbar { margin-bottom: 1rem; }
-
-    .score-row {
-      display: flex; justify-content: center; gap: 2rem;
-      font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem;
-    }
-    .grid {
-      display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px;
-      margin: 20px auto; width: 381px; background-color: #333; padding: 5px;
-      border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-    .cell {
-      width: 30px; height: 30px; display: flex; justify-content: center; align-items: center;
-      font-size: 12px; font-weight: bold; color: #fff; border-radius: 4px; border: 1px solid #444;
-      text-transform: uppercase;
-    }
-    .obstacle  { background-color: #555; }
-    .team-A-head { background-color: #218838; color: yellow; }
-    .team-A-body { background-color: #28a745; color: #fff; }
-    .team-B-head { background-color: #8e44ad; color: yellow; }
-    .team-B-body { background-color: #9b59b6; color: #fff; }
-    .team-C-head { background-color: #c0392b; color: yellow; }
-    .team-C-body { background-color: #e74c3c; color: #fff; }
-    .team-D-head { background-color: #f39c12; color: yellow; }
-    .team-D-body { background-color: #f1c40f; color: #fff; }
-    .stunned   { filter: grayscale(100%); }
-    .coin      { background-color: #ffc107; color: #000; }
-    .diamond   { background-color: #007bff; color: #fff; }
-    .poison    { background-color: #dc3545; color: #fff; }
-    .next-item { background-color: #777;    color: #fff; }
-
-    /* 投票按鈕 */
-    .vote-controls {
-      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-    }
-    .vote-row { display: flex; gap: 0.5rem; }
-    .vote-button {
-      width: 60px; height: 60px; font-weight: bold;
-      display: flex; justify-content: center; align-items: center;
-      border-radius: 8px; font-size: 1.2rem;
-    }
-
-    /* Viewer 道具投票 */
-    .item-votes {
-      display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;
-    }
-    .item-card {
-      width: 100px; display: flex; flex-direction: column; align-items: center;
-      cursor: pointer; border: 1px solid #ccc; border-radius: 8px; padding: 0.5rem;
-      transition: transform 0.2s;
-    }
-    .item-card:hover {
-      transform: scale(1.05); border-color: #999;
-    }
-    .item-image {
-      width: 64px; height: 64px; background-color: #eee; margin-bottom: 0.5rem;
-    }
-    .item-title { font-weight: bold; }
-
-    /* 投票狀態提示 */
-    #vote-status {
-      margin-top:10px;
-      font-weight:bold; color:#0069d9;
-      text-align:center;
-    }
-    .instructions {
-      margin: 10px 0; padding: 10px; background-color: #e7f1ff;
-      border: 1px solid #8eb9ff; border-radius: 6px;
-      font-size: 0.95rem; line-height: 1.4rem;
-    }
-  </style>
+  <!-- 自訂樣式 -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- 導覽列 -->
+  <!-- 加載中畫面 -->
+  <div id="loading-screen">正在加載，請稍候...</div>
+
+  <!-- 用於顯示 prepare / done 狀態的嵌入頁面 -->
+  <div id="embed-prepare">
+    <iframe src=""></iframe>
+  </div>
+  <div id="embed-done">
+    <iframe src=""></iframe>
+  </div>
+
+  <!-- 導覽列 -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">春酒遊戲</a>
@@ -123,54 +37,35 @@
         <ul class="navbar-nav mx-auto">
           <li class="nav-item"><a class="nav-link" href="index.html">首頁</a></li>
           <li class="nav-item"><a class="nav-link" href="game1.html">六六大順</a></li>
-          <li class="nav-item"><a class="nav-link" href="game2.html">新春貪食蛇</a></li>
+          <li class="nav-item"><a class="nav-link active" href="game2.html">新春貪食蛇</a></li>
           <li class="nav-item"><a class="nav-link" href="game3.html">投你所號</a></li>
           <li class="nav-item"><a class="nav-link" href="prizes.html">獎品兌換</a></li>
         </ul>
       </div>
     </div>
   </nav>
-  <!-- 加載中狀態 -->
-  <div id="loading-screen">正在加載，請稍候...</div>
-
-  <!-- 用於顯示 prepare / done 狀態的嵌入頁面 -->
-  <div id="embed-prepare">
-    <iframe src=""></iframe>
-  </div>
-  <div id="embed-done">
-    <iframe src=""></iframe>
-  </div>
-
 
   <!-- 主容器 (only show if state=ready) -->
   <div class="container mt-4" id="main-container" style="display:none;">
     <h1 class="text-center mb-4">新春貪食蛇</h1>
 
-    <!-- 遊戲簡單說明：分為兩個版本 -->
     <div id="instr-player" class="instructions" style="display:none">
       <p>玩家遊戲說明：</p>
       <ul>
-        <li>你的目標是盡可能取得最多的分數！分數最高的整隊將晉級下一回合！</li>
-        <li>遊戲開始後，你與隊友將在每回合投票決定蛇的移動方向</li>
-        <li>遊戲總共有四個道具，分別是</br>
-          「金幣：加一分」、「鑽石：加兩分」、</br>
-          「毒蘋果：扣一分」、「障礙：下回合不能移動」</br>
-          「？代表觀眾會決定的道具位置」</li>
-        <li>遊戲將會進行 36 回合，努力避開障礙拿高分吧！</li>
-        <li>邊界、其他蛇的身體也視為障礙物喔！</li>
+        <li>你的目標是取得最多分數！</li>
+        <li>每回合投票決定蛇的移動方向</li>
+        <li>道具：金幣 +1、鑽石 +2、毒蘋果 -1、障礙 下一回合不能動</li>
+        <li>共 36 回合，努力拿高分!</li>
       </ul>
     </div>
-
     <div id="instr-viewer" class="instructions" style="display:none">
       <p>觀眾遊戲說明：</p>
       <ul>
-        <li>在地圖的「？位置」會產生什麼道具，需要由大家投票決定！</li>
-        <li>回合開始後，可投票產生道具：「鑽石：加兩分」、「毒蘋果：扣一分」、「障礙：下回合不能移動」</li>
-        <li>遊戲將會進行 36 回合，看看你想要幫助那一隊（或者陷害哪一隊吧！）</li>
+        <li>可投票決定「？位置」生成何種道具 (鑽石,毒蘋果,障礙)</li>
+        <li>一共 36 回合，看看想幫哪隊或陷害哪隊XD</li>
       </ul>
     </div>
 
-    <!-- 顯示自己的角色/隊伍 -->
     <div id="user-role-info" class="text-center mb-3" style="font-size:1.1rem;"></div>
 
     <!-- 隊伍得分 (橫排) -->
@@ -237,26 +132,31 @@
     你沒有參與此遊戲
   </div>
 
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+    defer
+  ></script>
+  <script type="module" src="js/firebase.js"></script>
   <script type="module">
-    import { rtdb, auth } from "./js/firebase.js";
+    import { auth, rtdb } from "./js/firebase.js";
     import { ref, onValue, get, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
 
-    // DOM
-    const loadingScreen  = document.getElementById("loading-screen");
-    const embedPrepare   = document.getElementById("embed-prepare");
-    const embedDone      = document.getElementById("embed-done");
-    const mainContainer  = document.getElementById("main-container");
-    const noAccessEl     = document.getElementById("no-access");
+    const loadingScreen = document.getElementById("loading-screen");
+    const embedPrepare  = document.getElementById("embed-prepare");
+    const embedDone     = document.getElementById("embed-done");
+    const mainContainer = document.getElementById("main-container");
+    const noAccessEl    = document.getElementById("no-access");
 
-    const instrPlayer  = document.getElementById("instr-player");
-    const instrViewer  = document.getElementById("instr-viewer");
-    const userRoleInfo = document.getElementById("user-role-info");
-    const phaseEl      = document.getElementById("current-phase");
-    const roundEl      = document.getElementById("current-round");
-    const timerEl      = document.getElementById("current-timer");
-    const scoreRow     = document.getElementById("score-board");
-    const gameBoard    = document.getElementById("game-board");
-    const votesData    = document.getElementById("votes-data");
+    const instrPlayer   = document.getElementById("instr-player");
+    const instrViewer   = document.getElementById("instr-viewer");
+    const userRoleInfo  = document.getElementById("user-role-info");
+    const phaseEl       = document.getElementById("current-phase");
+    const roundEl       = document.getElementById("current-round");
+    const timerEl       = document.getElementById("current-timer");
+    const scoreRow      = document.getElementById("score-board");
+    const gameBoard     = document.getElementById("game-board");
+    const votesData     = document.getElementById("votes-data");
 
     const playerControls= document.getElementById("player-controls");
     const viewerControls= document.getElementById("viewer-controls");
@@ -270,16 +170,15 @@
     let currentPhase="ready", currentRound=0;
     let localTimer=null;
 
-    // 1) 監聽 available/game2 => prepare / ready / done
+    // 監聽 available/game2 => prepare/ready/done
     const game2StateRef = ref(rtdb,"available/game2");
     onValue(game2StateRef, snap=>{
       if(!snap.exists()) return;
-      const state= snap.val(); // "prepare", "ready", "done"
+      const state= snap.val();
       if(state==="prepare") showPrepareUI();
       else if(state==="ready") showReadyUI();
       else if(state==="done") showDoneUI();
     });
-
     function showPrepareUI(){
       embedPrepare.style.display="block";
       embedPrepare.querySelector("iframe").src="game2-prepare.html";
@@ -298,14 +197,13 @@
       mainContainer.style.display="none";
     }
 
-    // 2) 監聽登入
-    auth.onAuthStateChanged(async(user)=>{
+    // 監聽登入
+    onAuthStateChanged(auth, async(user)=>{
       if(!user){
         console.log("尚未登入");
-        // 仍可顯示 prepare/done 介面，但 mainContainer 不會出現
+        loadingScreen.style.display="none";
       } else {
         userId= user.uid;
-        // 監聽自己的 role, team
         onValue(ref(rtdb,`users/${userId}/game2`), snap=>{
           if(!snap.exists()){
             setNoAccess();
@@ -317,49 +215,43 @@
             else if(userRole==="viewer") setViewerView();
             else setNoAccess();
           }
+          loadingScreen.style.display="none";
         });
       }
-      // 不論是否登入，都隱藏 loading
-      loadingScreen.style.display="none";
     });
-
     function setNoAccess(){
-      mainContainer.classList.add("hidden");
+      mainContainer.style.display="none";
       noAccessEl.style.display="block";
     }
     function setPlayerView(){
-      mainContainer.classList.remove("hidden");
+      mainContainer.style.display="block";
       noAccessEl.style.display="none";
       userRoleInfo.textContent= `你是 Player，隸屬隊伍: ${userTeam}`;
-
       playerControls.classList.remove("d-none");
       viewerControls.classList.add("d-none");
-
       instrPlayer.style.display="";
       instrViewer.style.display="none";
     }
     function setViewerView(){
-      mainContainer.classList.remove("hidden");
+      mainContainer.style.display="block";
       noAccessEl.style.display="none";
       userRoleInfo.textContent= "你是 Viewer";
-
       playerControls.classList.add("d-none");
       viewerControls.classList.remove("d-none");
-
       instrPlayer.style.display="none";
       instrViewer.style.display="";
     }
 
-    // 3) 監聽 turn
-    const turnRef  = ref(rtdb,"game2/turn");
+    // 監聽 turn
+    const turnRef= ref(rtdb,"game2/turn");
     onValue(turnRef, snap=>{
       if(!snap.exists()) return;
       const td= snap.val();
       currentPhase= td.phase || "ready";
       currentRound= td.currentTurn || 0;
 
-      phaseEl.textContent   = currentPhase;
-      roundEl.textContent   = currentRound;
+      phaseEl.textContent= currentPhase;
+      roundEl.textContent= currentRound;
 
       if(localTimer){
         clearInterval(localTimer);
@@ -371,7 +263,6 @@
         timerEl.textContent="0";
       }
     });
-
     function startCountdown(startTime, duration){
       const end= Number(startTime) + duration*1000;
       localTimer= setInterval(()=>{
@@ -387,11 +278,9 @@
     }
 
     // 監聽 board => renderBoard
-    const boardRef_= ref(rtdb,"game2/board");
+    const boardRef_ = ref(rtdb,"game2/board");
     onValue(boardRef_, snap=>{
-      if(snap.exists()) {
-        renderBoard(snap.val());
-      }
+      if(snap.exists()) renderBoard(snap.val());
     });
     function renderBoard(bd){
       gameBoard.innerHTML="";
@@ -402,7 +291,6 @@
           const cData= grid[key]||{};
           const cell= document.createElement("div");
           cell.className="cell";
-
           if(cData.type==="snake"){
             cell.textContent= cData.isHead? cData.team : "";
             cell.classList.add(cData.isHead?`team-${cData.team}-head`:`team-${cData.team}-body`);
@@ -411,9 +299,9 @@
             cell.textContent="?";
           } else {
             if(cData.type==="obstacle") cell.classList.add("obstacle");
-            if(cData.type==="coin") { cell.classList.add("coin"); cell.textContent="C"; }
-            if(cData.type==="diamond"){ cell.classList.add("diamond"); cell.textContent="D"; }
-            if(cData.type==="poison"){ cell.classList.add("poison"); cell.textContent="P"; }
+            if(cData.type==="coin")    { cell.classList.add("coin"); cell.textContent="C"; }
+            if(cData.type==="diamond") { cell.classList.add("diamond"); cell.textContent="D"; }
+            if(cData.type==="poison")  { cell.classList.add("poison"); cell.textContent="P"; }
           }
           gameBoard.appendChild(cell);
         }
@@ -432,7 +320,6 @@
       for(const [team,snk] of Object.entries(snakes)){
         const d= document.createElement("div");
         d.textContent= `隊伍${team}: ${snk.score||0} 分`;
-
         // 顏色
         if(team==="A") d.style.color="#28a745";
         if(team==="B") d.style.color="#9b59b6";
@@ -450,19 +337,18 @@
     // 監聽 votes => debug
     const votesRef_ = ref(rtdb,"game2/votes");
     onValue(votesRef_, snap=>{
-      if(!snap.exists()){
+      if(!snap.exists()) {
         votesData.textContent="無投票資料";
       } else {
-        votesData.textContent= JSON.stringify(snap.val(), null,2);
+        votesData.textContent= JSON.stringify(snap.val(), null, 2);
       }
     });
 
-    // 4) Player 投票事件
+    // Player 投票
     btnUp.addEventListener("click",   ()=> doVote("up"));
     btnDown.addEventListener("click", ()=> doVote("down"));
     btnLeft.addEventListener("click", ()=> doVote("left"));
     btnRight.addEventListener("click",()=> doVote("right"));
-
     async function doVote(dir){
       if(userRole!=="player") return;
       if(currentPhase!=="vote"){
@@ -476,16 +362,15 @@
       voteStatusEl.textContent= `你已投票：${dir}`;
     }
 
-    // 5) Viewer 投票事件
+    // Viewer 投票
     viewerControls.addEventListener("click", async e=>{
       if(userRole!=="viewer") return;
-      const card= e.target.closest(".item-card");
-      if(!card) return;
-
       if(currentPhase!=="vote"){
         alert("當前不是投票階段");
         return;
       }
+      const card= e.target.closest(".item-card");
+      if(!card) return;
       const item= card.dataset.type;
       const roundToVote= currentRound+1;
       await update(ref(rtdb,`users/${userId}/game2/turn/${roundToVote}`), {

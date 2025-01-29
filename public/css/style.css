@@ -1,64 +1,54 @@
-body {
-  font-family: 'Noto Sans TC', Arial, sans-serif; /* 支援中文 */
+/* ================================
+   css/style.css
+   集中所有通用或各遊戲常見的樣式
+================================ */
+
+/* 全局設定 */
+html, body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background: linear-gradient(to bottom, #ffecd2, #fcb69f); /* 紅色漸層 */
-  color: #b21807; /* 紅色字體 */
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9; /* 預設背景 */
 }
 
-/* 導覽列 */
-.navbar {
-  background-color: #d0021b; /* 春節紅 */
-}
-
+/* Bootstrap navbar 若需客製可額外設定 */
 .navbar-brand, .nav-link {
-  color: white !important;
+  color: #fff !important;
 }
-
 .navbar-nav .nav-link:hover {
-  color: #ffc107 !important; /* 金黃色 */
+  color: #ffc107 !important;
 }
 
-.navbar-toggler {
-  background-color: #ffc107; /* 金色 */
-  border: 1px solid #d0021b;
-  color: #d0021b;
-}
-
-.navbar-toggler-icon {
-  background-image: url('images/menu-icon.png'); /* 自定義圖示 */
-}
-
-/* 主內容 */
-main {
-  padding: 2rem;
+/* 容器：寬度 & 置中 */
+.container {
+  max-width: 600px;
+  margin: 20px auto;
   text-align: center;
 }
 
-/* 數字框 */
-.number-box {
+/* 錯誤訊息 */
+.error-message {
+  color: red;
+  margin-top: 0.5rem;
+}
+
+/* 隱藏區塊 */
+.d-none {
+  display: none !important;
+}
+
+/* Loading 畫面 */
+#loading-screen {
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 2px solid #d0021b; /* 紅色邊框 */
-  border-radius: 8px;
+  height: 100vh;
   font-size: 1.5rem;
-  color: #333;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: #f9f9f9;
 }
 
-.number-box.running {
-  background-color: #ffd700; /* 金色 */
-  animation: bounce 0.5s infinite;
-}
-
-.number-box.stopped {
-  background-color: #d0021b; /* 紅色 */
-  color: white;
-}
-
-/* 按鈕樣式 */
+/* 按鈕樣式 (若要覆蓋 bootstrap) */
 button {
   font-size: 1.2rem;
   font-weight: bold;
@@ -68,68 +58,217 @@ button {
   cursor: pointer;
   transition: all 0.3s ease-in-out;
 }
-
 button.btn-warning {
   background-color: #ffcc33;
   color: #d0021b;
 }
-
 button.btn-warning:hover {
   background-color: #ffdd66;
 }
-
 button.btn-primary {
   background-color: #d0021b;
   color: #ffd700;
 }
-
 button.btn-primary:hover {
   background-color: #e63946;
 }
 
-/* 過年動畫 */
-body::before {
-  content: '';
-  position: absolute;
-  top: -50px;
-  left: -50px;
-  width: 200%;
-  height: 200%;
-  background: url('images/fireworks.png') repeat;
-  opacity: 0.3;
-  animation: floating 30s linear infinite;
+/* ================================
+   Game1 (六六大順) 相關
+================================ */
+.number-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #d0021b; /* 紅色邊框 */
+  border-radius: 8px;
+  font-size: 1.5rem;
+  color: #333;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-height: 80px; /* 讓框看起來一致 */
 }
-
+.number-box.running {
+  background-color: #ffd700; /* 金色 */
+  animation: bounce 0.5s infinite;
+}
+.number-box.stopped {
+  background-color: #d0021b; /* 紅色 */
+  color: white;
+}
 @keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
 }
 
-@keyframes floating {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-100px);
-  }
+/* ================================
+   Game2 (新春貪食蛇) 相關
+================================ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1px;
+  margin: 20px auto;
+  width: 381px; /* 12*30 + (12-1)*1 + padding? */
+  background-color: #333;
+  padding: 5px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+.cell {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  border-radius: 4px;
+  border: 1px solid #444;
+  text-transform: uppercase;
+}
+.obstacle     { background-color: #555; }
+.team-A-head  { background-color: #218838; color: yellow; }
+.team-A-body  { background-color: #28a745; color: #fff; }
+.team-B-head  { background-color: #8e44ad; color: yellow; }
+.team-B-body  { background-color: #9b59b6; color: #fff; }
+.team-C-head  { background-color: #c0392b; color: yellow; }
+.team-C-body  { background-color: #e74c3c; color: #fff; }
+.team-D-head  { background-color: #f39c12; color: yellow; }
+.team-D-body  { background-color: #f1c40f; color: #fff; }
+.coin         { background-color: #ffc107; color: #000; }
+.diamond      { background-color: #007bff; color: #fff; }
+.poison       { background-color: #dc3545; color: #fff; }
+.next-item    { background-color: #777;    color: #fff; }
+
+/* 投票用、viewer區塊 */
+.vote-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.vote-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.vote-button {
+  width: 60px;
+  height: 60px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  font-size: 1.2rem;
+}
+/* Viewer 道具投票 */
+.item-votes {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.item-card {
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0.5rem;
+  transition: transform 0.2s;
+}
+.item-card:hover {
+  transform: scale(1.05);
+  border-color: #999;
+}
+.item-image {
+  width: 64px;
+  height: 64px;
+  background-color: #eee;
+  margin-bottom: 0.5rem;
+}
+.item-title {
+  font-weight: bold;
+}
+#vote-status {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #0069d9;
+  text-align: center;
 }
 
+/* ================================
+   Game3 (投你所號) 相關
+================================ */
+.player-card {
+  margin: 10px 0;
+  padding: 15px;
+  border: 1px solid #007bff;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+}
+.player-card:hover {
+  background-color: #e9ecef;
+  cursor: pointer;
+}
+.player-card.selected {
+  background-color: #007bff !important;
+  color: white;
+}
+.player-card.locked {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ================================
+   prizes.html (獎品兌換) 相關
+================================ */
+.fancy-1 {
+  background: linear-gradient(135deg, #ffd700, #fff);
+  border: 2px solid gold;
+  padding: 1rem;
+  border-radius: 8px;
+}
+.fancy-2 {
+  background: linear-gradient(135deg, #ffecb3, #fff);
+  border: 2px solid orange;
+  padding: 1rem;
+  border-radius: 8px;
+}
+.fancy-3 {
+  background: linear-gradient(135deg, #f0f0f0, #fff);
+  border: 2px solid goldenrod;
+  color: goldenrod;
+  padding: 1rem;
+  border-radius: 8px;
+}
+.fancy-4 {
+  background: linear-gradient(135deg, #ffe5e5, #fff);
+  border: 2px solid red;
+  color: maroon;
+  padding: 1rem;
+  border-radius: 8px;
+}
+.award-title {
+  font-weight: bold; 
+  font-size: 1.4rem; 
+  margin: 1rem 0;
+}
+.desc {
+  color: #666; 
+  margin-bottom: 1rem; 
+  line-height: 1.6;
+}
+
+/* 響應式簡易示範 */
 @media (max-width: 768px) {
-  .number-box {
-    width: 50px;
-    height: 50px;
-    line-height: 50px;
-    font-size: 1.2rem;
-  }
-
-  .navbar-toggler {
-    background-color: #ffc107; /* 金色 */
-    border: 1px solid #d0021b;
-    color: #d0021b;
+  .cell {
+    width: 25px;
+    height: 25px;
   }
 }
-
