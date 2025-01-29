@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>獎品兌換</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0; padding: 0; text-align: center;
+    }
+    .navbar-custom {
+      background-color: #343a40; color: white; padding: 1rem;
+    }
+    .container {
+      max-width: 600px; margin: 2rem auto; background: #fff;
+      border: 1px solid #ccc; border-radius: 8px; padding: 1rem;
+    }
+    h1 { margin-top:0; }
+    .award-title {
+      font-weight: bold; font-size: 1.4rem; margin: 1rem 0;
+    }
+    .desc {
+      color: #666; margin-bottom: 1rem; line-height: 1.6;
+    }
+    /* 華麗樣式示例 */
+    .fancy-1 {
+      background: linear-gradient(135deg, #ffd700, #fff);
+      border: 2px solid gold;
+    }
+    .fancy-2 {
+      background: linear-gradient(135deg, #ffecb3, #fff);
+      border: 2px solid orange;
+    }
+    .fancy-3 {
+      background: linear-gradient(135deg, #f0f0f0, #fff);
+      border: 2px solid goldenrod; /* 金色系 */
+      color: goldenrod;
+    }
+    .fancy-4 {
+      background: linear-gradient(135deg, #ffe5e5, #fff);
+      border: 2px solid red; 
+      color: maroon;
+    }
+    .password-section {
+      margin-top: 1rem; 
+    }
+    .already-done {
+      color: green; font-weight: bold; margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- 簡單的 Navbar，可自行調整 -->
+  <div class="navbar-custom">
+    <h2 style="margin:0;">春酒遊戲 - 獎品兌換</h2>
+  </div>
+
+  <div id="main-container" class="container" style="display:none;">
+    <h1>新年快樂，別忘了領紅包喔！</h1>
+    <p>參加春酒遊戲，提升您的紅包等級喔！</p>
+    <div id="prize-info"></div>
+    <div id="password-area" class="password-section" style="display:none;">
+      <p>請輸入密碼，以便確認您已領取紅包：</p>
+      <input type="password" id="pwd-input" placeholder="工作人員專用" />
+      <button id="pwd-submit">確認</button>
+      <p id="pwd-error" style="color:red; display:none;"></p>
+      <p id="done-msg" class="already-done" style="display:none;"></p>
+    </div>
+  </div>
+
+  <!-- Firebase JS -->
+  <script type="module">
+    import { auth, rtdb } from "./js/firebase.js";
+    import { ref, get, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+
+    const mainContainer = document.getElementById("main-container");
+    const prizeInfoEl   = document.getElementById("prize-info");
+
+    const passwordArea  = document.getElementById("password-area");
+    const pwdInput      = document.getElementById("pwd-input");
+    const pwdSubmitBtn  = document.getElementById("pwd-submit");
+    const pwdErrorEl    = document.getElementById("pwd-error");
+    const doneMsgEl     = document.getElementById("done-msg");
+
+    onAuthStateChanged(auth, async (user) => {
+      if(!user){
+        // 未登入, 顯示提示或導向登入
+        prizeInfoEl.innerHTML = `<p style="color:red;">尚未登入，請先登入後再進行獎品兌換！</p>`;
+        mainContainer.style.display = "block";
+        return;
+      }
+
+      // 已登入 => 取得該 user 的 price + done
+      const uid = user.uid;
+      const userRef = ref(rtdb, `users/${uid}`);
+      const snap = await get(userRef);
+      if(!snap.exists()){
+        prizeInfoEl.innerHTML = `<p style="color:red;">找不到您的使用者資料，無法兌換獎品！</p>`;
+        mainContainer.style.display = "block";
+        return;
+      }
+
+      const uData = snap.val();
+      const price = uData.price || 4;   // 預設 4 (若沒定義)
+      const done  = uData.done || false; 
+      
+      // 根據 price 顯示對應畫面
+      let fancyClass = "";
+      let awardTitle = "";
+      let descText   = "";
+
+      switch(price){
+        case 1:
+          fancyClass = "fancy-1";
+          awardTitle = "瑞蛇照富貴 (最大獎)";
+          descText   = "恭喜你獲得最高榮耀！獎項極度華麗！";
+          break;
+        case 2:
+          fancyClass = "fancy-2";
+          awardTitle = "福蛇來送喜 (第二大獎)";
+          descText   = "這也是十分華麗的獎項，絕對值得驕傲！";
+          break;
+        case 3:
+          fancyClass = "fancy-3";
+          awardTitle = "靈蛇獻瑞 (第三獎)";
+          descText   = "以金色為主調，並可在此領取紅包，請洽工作人員。";
+          break;
+        case 4:
+        default:
+          fancyClass = "fancy-4";
+          awardTitle = "金蛇迎春 (第四獎)";
+          descText   = "以紅色為主調，同樣也可領取紅包，但稍微低一點。";
+          break;
+      }
+
+      prizeInfoEl.innerHTML = `
+        <div class="${fancyClass}" style="padding:1rem; border-radius:8px;">
+          <div class="award-title">${awardTitle}</div>
+          <div class="desc">${descText}</div>
+        </div>
+      `;
+
+      mainContainer.style.display = "block";
+
+      // 僅在 price=3 or price=4 時，顯示密碼輸入 + 領紅包機制
+      if(price===3 || price===4){
+        passwordArea.style.display="block";
+
+        // 若 done = true => 顯示已領取
+        if(done===true){
+          // hide input, show done message
+          pwdInput.style.display="none";
+          pwdSubmitBtn.style.display="none";
+          pwdErrorEl.style.display="none";
+          doneMsgEl.style.display="block";
+          doneMsgEl.textContent = "您已經領取過紅包了，恭喜！";
+        } else {
+          // show input
+          pwdInput.style.display="inline-block";
+          pwdSubmitBtn.style.display="inline-block";
+          doneMsgEl.style.display="none";
+        }
+
+        // 綁定按鈕事件
+        pwdSubmitBtn.addEventListener("click", async ()=>{
+          const inputVal = pwdInput.value.trim();
+          if(inputVal==="0"){
+            // 密碼正確 => update done:true
+            const updates = {};
+            updates[`users/${uid}/done`] = true;
+            await update(ref(rtdb), updates);
+
+            // 更新畫面
+            pwdErrorEl.style.display="none";
+            pwdInput.style.display="none";
+            pwdSubmitBtn.style.display="none";
+            doneMsgEl.style.display="block";
+            doneMsgEl.textContent = "領取成功，恭喜！";
+          } else {
+            pwdErrorEl.style.display="block";
+            pwdErrorEl.textContent= "密碼錯誤，請洽工作人員！";
+          }
+        });
+
+      } else {
+        // price=1 or 2 => 不需互動
+        passwordArea.style.display="none";
+      }
+    });
+  </script>
+</body>
+</html>

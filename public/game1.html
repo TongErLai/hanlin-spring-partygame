@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>66 大順</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+    defer
+  ></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+    }
+    .number-box.running {
+      background-color: #ffc107;
+    }
+    .number-box.stopped {
+      background-color: #28a745;
+      color: white;
+    }
+    .remaining {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+    .highest-score {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      color: #007bff;
+    }
+    .rules {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 1rem;
+    }
+    /* 加載中畫面樣式 */
+    #loading-screen {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-size: 1.5rem;
+      background-color: #f8f9fa;
+    }
+    #main-content {
+      display: none;
+    }
+    /* 用於嵌入 "prepare" 或 "done" 狀態時顯示的區塊 */
+    #embed-prepare, #embed-done {
+      display: none;
+    }
+    iframe {
+      width: 100%;
+      height: calc(100vh - 100px);
+      border: none;
+    }
+  </style>
+</head>
+<body>
+    <!-- 導覽列 -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">春酒遊戲</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+        data-bs-target="#navbarNav" aria-controls="navbarNav"
+        aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">首頁</a></li>
+          <li class="nav-item"><a class="nav-link" href="game1.html">六六大順</a></li>
+          <li class="nav-item"><a class="nav-link" href="game2.html">新春貪食蛇</a></li>
+          <li class="nav-item"><a class="nav-link" href="game3.html">投你所號</a></li>
+          <li class="nav-item"><a class="nav-link" href="prizes.html">獎品兌換</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- 加載中狀態 -->
+  <div id="loading-screen">正在加載，請稍候...</div>
+
+  <!-- 這裡是嵌入 "prepare" 狀態 頁面的容器 -->
+  <div id="embed-prepare">
+    <iframe src=""></iframe>
+  </div>
+  <!-- 這裡是嵌入 "done" 狀態 頁面的容器 -->
+  <div id="embed-done">
+    <iframe src=""></iframe>
+  </div>
+
+
+
+  <!-- 主內容 (ready 狀態時顯示) -->
+  <div id="main-content">
+    <div class="container text-center mt-4">
+      <h1>六六大順</h1>
+      <div id="user-rank" class="user-rank">用戶：未設定，目前排名：未設定</div>
+      <div id="highest-score" class="highest-score">目前最高分：0</div>
+      <div id="remaining-chances" class="remaining">剩餘遊玩次數：3</div>
+
+      <div id="number-display" class="row justify-content-center">
+        <div class="col-2">
+          <div class="number-box running" id="digit-1">0</div>
+        </div>
+        <div class="col-2">
+          <div class="number-box running" id="digit-2">0</div>
+        </div>
+        <div class="col-2">
+          <div class="number-box running" id="digit-3">0</div>
+        </div>
+        <div class="col-2">
+          <div class="number-box running" id="digit-4">0</div>
+        </div>
+        <div class="col-2">
+          <div class="number-box running" id="digit-5">0</div>
+        </div>
+        <div class="col-2">
+          <div class="number-box running" id="digit-6">0</div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-warning" id="stop-button" disabled>-STOP-</button>
+      </div>
+      <div class="mt-4">
+        <button class="btn btn-primary" id="start-game">遊戲開始</button>
+      </div>
+      <div class="rules">
+        <h3>遊戲規則</h3>
+        <ul>
+          <li>點擊「遊戲開始」按鈕，數字將開始快速變化。</li>
+          <li>點擊「逐步停止」按鈕，依序逐步停止每個數字（從右到左）。</li>
+          <li>只能玩 3 次，超過次數後將無法繼續遊玩。</li>
+          <li>如果分數超過目前最高分，將自動刷新最高分。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+  import { auth, rtdb } from "./js/firebase.js";
+  import { ref, get, update, set, onValue } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+
+  const loadingScreen = document.getElementById("loading-screen");
+  const mainContent   = document.getElementById("main-content");
+  const embedPrepare  = document.getElementById("embed-prepare");
+  const embedDone     = document.getElementById("embed-done");
+
+  // 監聽 "available/game1" 狀態 => "prepare" / "ready" / "done"
+  const game1StateRef = ref(rtdb, "available/game1");
+  onValue(game1StateRef, snap => {
+    if(!snap.exists()) return;
+    const state = snap.val(); // "prepare" | "ready" | "done"
+    if(state === "prepare"){
+      showPrepareUI();
+    } else if(state === "ready"){
+      showReadyUI();
+    } else if(state === "done"){
+      showDoneUI();
+    }
+  });
+
+  function showPrepareUI(){
+    embedPrepare.style.display="block";
+    embedPrepare.querySelector("iframe").src="game1-prepare.html";
+    mainContent.style.display="none";
+    embedDone.style.display="none";
+  }
+  function showReadyUI(){
+    embedPrepare.style.display="none";
+    embedDone.style.display="none";
+    mainContent.style.display="block";
+  }
+  function showDoneUI(){
+    embedPrepare.style.display="none";
+    embedDone.style.display="block";
+    embedDone.querySelector("iframe").src="game1-done.html";
+    mainContent.style.display="none";
+  }
+
+  // ------------------------------
+  // 以下是原本的遊戲(READY 狀態)邏輯
+  // ------------------------------
+  const startButton = document.getElementById("start-game");
+  const stopButton  = document.getElementById("stop-button");
+  const remainingChances      = document.getElementById("remaining-chances");
+  const highestScoreDisplay   = document.getElementById("highest-score");
+  const digits = Array.from({ length: 6 }, (_, i) => document.getElementById(`digit-${i + 1}`));
+
+  let isRunning = false;
+  let currentChances = 3;
+  let currentHighestScore = 0;
+  let userId = null;
+  const intervals = [];
+  const speeds = [30, 30, 50, 50, 80, 80];
+  let currentIndex = digits.length - 1;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // 一開始隱藏 loading
+    loadingScreen.style.display="none";
+    // mainContent 是否顯示，要看 "available/game1" 狀態 => showReadyUI
+  });
+
+  auth.onAuthStateChanged(async (user) => {
+    if(user){
+      userId= user.uid;
+      // 初始化 chances & score
+      const chancesRef= ref(rtdb, `users/${userId}/game1`);
+      const snapshot= await get(chancesRef);
+
+      const usernameRef= ref(rtdb, `users/${userId}/username`);
+      const usernameSnap= await get(usernameRef);
+      if(usernameSnap.exists()){
+        const username= usernameSnap.val();
+        document.getElementById("user-rank").textContent = `用戶：${username}，目前排名：未設定`;
+      }
+
+      if(snapshot.exists()){
+        currentChances= 3 - (snapshot.val().played || 0);
+      }
+      const highestScoreRef= ref(rtdb, `users/${userId}/game1/highestScore`);
+      const highestScoreSnap= await get(highestScoreRef);
+      if(highestScoreSnap.exists()){
+        currentHighestScore= highestScoreSnap.val();
+      }
+      updateUI();
+      fetchUserRank();
+    }
+    // 結束後會顯示 mainContent 或 embed 由 onValue(available/game1) 決定
+    loadingScreen.style.display="none";
+  });
+
+  function updateUI(){
+    remainingChances.textContent= `剩餘遊玩次數：${currentChances}`;
+    highestScoreDisplay.textContent= `目前最高分：${currentHighestScore}`;
+    startButton.disabled= (currentChances<=0 || isRunning);
+  }
+
+  function startGame(){
+    // 若沒次數或正在運行，就不作動
+    if(currentChances <=0 || isRunning) return;
+    isRunning= true;
+    stopButton.disabled= false;
+    startButton.disabled= true;
+
+    currentIndex= digits.length-1;
+    digits.forEach((digit, idx)=>{
+      digit.classList.add("running");
+      digit.classList.remove("stopped");
+      let curNum= 0;
+      intervals[idx]= setInterval(()=>{
+        digit.textContent= curNum;
+        curNum= (curNum+1)%7;
+      }, speeds[idx]);
+    });
+  }
+
+  async function stopNextDigit(){
+    if(currentIndex>=0){
+      clearInterval(intervals[currentIndex]);
+      digits[currentIndex].classList.remove("running");
+      digits[currentIndex].classList.add("stopped");
+      currentIndex--;
+
+      // 若全部停完
+      if(currentIndex<0){
+        stopButton.disabled= true;
+        isRunning= false;
+
+        const result= digits.map(d=> d.textContent).join("");
+        const score= parseInt(result,10);
+        alert(`遊戲結束！你的數字是：${result}，分數為：${score}`);
+
+        // 更新DB
+        const userGameRef= ref(rtdb, `users/${userId}/game1`);
+        await update(userGameRef,{ played: 3 - currentChances + 1 });
+
+        currentChances-=1;
+        updateUI();
+
+        // 若刷新最高分
+        if(score> currentHighestScore){
+          const hsRef= ref(rtdb, `users/${userId}/game1/highestScore`);
+          try{
+            await set(hsRef, score);
+            currentHighestScore= score;
+            updateUI();
+            await fetchUserRank();
+          } catch(e){
+            console.error("無法更新最高分數：", e);
+            alert("更新最高分數失敗，請稍後再試！");
+          }
+        }
+        // 重置
+        currentIndex= digits.length-1;
+      }
+    }
+  }
+
+  async function fetchUserRank(){
+    const rankRef= ref(rtdb, `users/${userId}/game1/rank`);
+    const snap= await get(rankRef);
+    const usernameRef= ref(rtdb, `users/${userId}/name`);
+    const usernameSnap= await get(usernameRef);
+
+    if(snap.exists() && usernameSnap.exists()){
+      const rankValue= snap.val();
+      const username= usernameSnap.val();
+      document.getElementById("user-rank").textContent=
+        `${username}，你的排名是：${rankValue}`;
+    } else {
+      document.getElementById("user-rank").textContent="目前排名：未設定";
+    }
+  }
+
+  startButton.addEventListener("click", startGame);
+  stopButton.addEventListener("click", stopNextDigit);
+
+  </script>
+</body>
+</html>
